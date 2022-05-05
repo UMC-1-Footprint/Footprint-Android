@@ -37,4 +37,6 @@ val useCaseModule = module {
     single<GetMonthWalksUseCase> { GetMonthWalksUseCase(get()) }.bind(WalkRepositoryImpl::class)
     single<GetDayWalksUseCase> { GetDayWalksUseCase(get()) }.bind(WalkRepositoryImpl::class)
 
+    single<GetNoticeListUseCase> { GetNoticeListUseCase(get()) }.bind(NoticeRepositoryImpl::class)
+    single<GetNoticeUseCase> { GetNoticeUseCase(get()) }.bind(NoticeRepositoryImpl::class)
 }

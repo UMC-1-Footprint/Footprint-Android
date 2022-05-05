@@ -53,4 +53,12 @@ val viewModelModule = module {
     viewModel {
         CalendarViewModel(get(), get(), get())
     }
+
+    viewModel {
+        NoticeListViewModel(get())
+    }
+
+    viewModel {
+        NoticeDetailViewModel(get())
+    }
 }
