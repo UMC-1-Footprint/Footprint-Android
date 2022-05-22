@@ -130,11 +130,12 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
 
     override fun onStart() {
         super.onStart()
+        /* API 에러 */
         //날씨 API
-        //callWeatherAPI()
+        //callWeatherAPI() // method is not allowed
 
         //유저 정보, 일별, 월별 API
-        //homeVm.getUser()
+        //homeVm.getUser() // badUrl
         homeVm.getToday()
         homeVm.getTmonth()
     }
