@@ -26,6 +26,7 @@ import com.footprint.footprint.data.dto.Today
 import com.footprint.footprint.databinding.FragmentHomeBinding
 import com.footprint.footprint.ui.BaseFragment
 import com.footprint.footprint.ui.adapter.HomeViewpagerAdapter
+import com.footprint.footprint.ui.error.ErrorActivity
 import com.footprint.footprint.ui.walk.WalkActivity
 import com.footprint.footprint.utils.*
 import com.footprint.footprint.viewmodel.HomeViewModel
@@ -69,6 +70,10 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
     }
 
     override fun initAfterBinding() {
+        binding.homeDayGoalLayout.setOnClickListener {
+            startActivity(Intent(requireContext(), ErrorActivity::class.java))
+        }
+
         val gpsMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             getString(R.string.msg_foreground_gps)
         } else {
