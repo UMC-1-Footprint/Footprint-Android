@@ -7,9 +7,13 @@ import android.graphics.Color
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Looper
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
@@ -42,6 +46,8 @@ import java.time.ZoneId
 
 class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::inflate){
     private lateinit var networkErrSb: Snackbar
+    private lateinit var getResult: ActivityResultLauncher<Intent>
+    private var error = arrayListOf(0, 0, 0, 0) // 자동 호출되는 API는 재호출 3회까지 제한
 
     //뷰페이저, 프래그먼트
     private lateinit var homeVPAdapter: HomeViewpagerAdapter
@@ -71,7 +77,8 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
 
     override fun initAfterBinding() {
         binding.homeDayGoalLayout.setOnClickListener {
-            startActivity(Intent(requireContext(), ErrorActivity::class.java))
+            //startActivity(Intent(requireContext(), ErrorActivity::class.java))
+            startErrorActivity(getResult, "HomeFrg")
         }
 
         val gpsMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -126,17 +133,8 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
 
         setClickListener()
         observe()
-    }
 
-    override fun onStart() {
-        super.onStart()
-        //날씨 API
-        callWeatherAPI()
 
-        //유저 정보, 일별, 월별 API
-        homeVm.getUser()
-        homeVm.getToday()
-        homeVm.getTmonth()
     }
 
     private fun setClickListener() {
@@ -233,6 +231,34 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
             nowDate.dayOfMonth,
             dayOfWeek
         )
+    }
+
+    private fun initActivityResult(){
+        getResult = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result: ActivityResult ->
+            if(result.resultCode == ErrorActivity.RETRY){
+
+                when(homeVm.getErrorType()){
+                    "getUser" -> {
+                        if(error[0]++ < 3)
+                            homeVm.getUser()
+                    }
+                    "getToday" -> {
+                        if(error[1]++ < 3)
+                            homeVm.getToday()
+                    }
+                    "getTmonth" ->  {
+                        if(error[2]++ < 3)
+                            homeVm.getUser()
+                    }
+                    "getWeather" -> {
+                        if(error[3]++ < 3)
+                            callWeatherAPI()
+                    }
+                }
+            }
+        }
     }
 
     //위치 정보 권한 허용 함수(포그라운드)
@@ -338,8 +364,7 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
                     networkErrSb.show()
                 }
                 ErrorType.UNKNOWN, ErrorType.DB_SERVER -> {
-                    showToast(getString(R.string.error_sorry))
-                    requireActivity().supportFragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+                    startErrorActivity(getResult, "HomeFragment")
                 }
             }
         })
@@ -424,6 +449,21 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
             }
             binding.homeTopWeatherIv.setImageResource(imgRes)
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        initActivityResult()
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        callWeatherAPI()
+        homeVm.getUser()
+        homeVm.getToday()
+        homeVm.getTmonth()
     }
 
     override fun onStop() {

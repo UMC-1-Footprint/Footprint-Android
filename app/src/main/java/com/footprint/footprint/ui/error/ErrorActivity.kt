@@ -1,6 +1,7 @@
 package com.footprint.footprint.ui.error
 
 import android.graphics.Paint
+import android.os.Bundle
 import android.view.View
 import com.footprint.footprint.databinding.ActivityErrorBinding
 import com.footprint.footprint.ui.BaseActivity
@@ -8,12 +9,12 @@ import com.footprint.footprint.ui.main.MainActivity
 import com.footprint.footprint.utils.getJwt
 
 class ErrorActivity : BaseActivity<ActivityErrorBinding>(ActivityErrorBinding::inflate) {
+    companion object {
+        const val RETRY = 2222
+        const val SCREEN = "SCREEN"
+    }
 
     override fun initAfterBinding() {
-        // Splash, SignIn, Register -> 홈으로 가기 X
-        if(getJwt() == null)
-            binding.errorGohomeTv.visibility = View.GONE
-
         binding.errorGohomeTv.paintFlags = Paint.UNDERLINE_TEXT_FLAG
 
         // 뒤로가기
@@ -23,20 +24,24 @@ class ErrorActivity : BaseActivity<ActivityErrorBinding>(ActivityErrorBinding::i
 
         // 재시도
         binding.errorRetryBtn.setOnClickListener{
-            // setResult(this, 9000)
-            // finish()
+             setResult(RETRY, intent)
+             finish()
         }
 
         // 홈으로 가기
         binding.errorGohomeTv.setOnClickListener{
             finishAffinity()
             startNextActivity(MainActivity::class.java)
-
-            // way 2
-            /*val intent = Intent(this, MainActivity::class.java)
-            intent.flags =
-                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP*/
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Splash, SignIn, Register -> 홈으로 가기 X
+        when(intent.getStringExtra(SCREEN)){
+            "SplashActivity", "SignInActivity", "RegisterActivity" -> binding.errorGohomeTv.visibility = View.GONE
+        }
+
+    }
 }
