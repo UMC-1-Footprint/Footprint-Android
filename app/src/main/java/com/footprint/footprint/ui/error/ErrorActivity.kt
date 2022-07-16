@@ -40,7 +40,7 @@ class ErrorActivity : BaseActivity<ActivityErrorBinding>(ActivityErrorBinding::i
 
         // Splash, SignIn, Register -> 홈으로 가기 X
         when(intent.getStringExtra(SCREEN)){
-            "SplashActivity", "SignInActivity", "RegisterActivity" -> binding.errorGohomeTv.visibility = View.GONE
+            "SplashActivity", "SignInActivity", "RegisterGoalFragment" -> binding.errorGohomeTv.visibility = View.GONE
         }
 
     }
