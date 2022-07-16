@@ -241,19 +241,19 @@ class HomeFragment() : BaseFragment<FragmentHomeBinding>(FragmentHomeBinding::in
 
                 when(homeVm.getErrorType()){
                     "getUser" -> {
-                        if(error[0]++ < 3)
+                        if(error[0]++ < 4)
                             homeVm.getUser()
                     }
                     "getToday" -> {
-                        if(error[1]++ < 3)
+                        if(error[1]++ < 4)
                             homeVm.getToday()
                     }
                     "getTmonth" ->  {
-                        if(error[2]++ < 3)
+                        if(error[2]++ < 4)
                             homeVm.getUser()
                     }
                     "getWeather" -> {
-                        if(error[3]++ < 3)
+                        if(error[3]++ < 4)
                             callWeatherAPI()
                     }
                 }
