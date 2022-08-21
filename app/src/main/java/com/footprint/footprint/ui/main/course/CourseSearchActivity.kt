@@ -6,23 +6,22 @@ import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.footprint.footprint.R
+import com.footprint.footprint.data.dto.CourseDTO
 import com.footprint.footprint.databinding.ActivityCourseSearchBinding
 import com.footprint.footprint.domain.model.BoundsModel
 import com.footprint.footprint.ui.BaseActivity
 import com.footprint.footprint.ui.adapter.CourseFilterRVAdapter
+import com.footprint.footprint.ui.adapter.CourseListRVAdapter
 import com.footprint.footprint.ui.main.course.Filtering.filterState
-import com.footprint.footprint.utils.LogUtils
-import com.footprint.footprint.utils.SEARCH_IN_MY_LOCATION
-import com.footprint.footprint.utils.getNumberOfActivateFilters
+import com.footprint.footprint.utils.*
 import com.footprint.footprint.viewmodel.CourseSearchViewModel
-import com.footprint.footprint.viewmodel.CourseViewModel
 import com.google.android.gms.location.*
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.*
 import com.naver.maps.map.overlay.LocationOverlay
@@ -31,30 +30,68 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCourseSearchBinding::inflate), OnMapReadyCallback{
+    companion object{
+        const val CLEARED = 111
+    }
 
     private val courseVm: CourseSearchViewModel by viewModel()
 
     private lateinit var filterRVAdapter: CourseFilterRVAdapter
+    private lateinit var courseRVAdapter: CourseListRVAdapter
 
     private lateinit var map: NaverMap
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var locationOverlay: LocationOverlay
     private lateinit var currentLocation: Location
 
-
     override fun initAfterBinding() {
         initMap()
         setClickListener()
         observe()
+
+        initRV()
+        dummyData()
+        setSlidingUpPanel()
     }
 
     private fun setClickListener(){
         binding.courseSearchBackIv.setOnClickListener {
+            val intent = intent.apply {
+                putExtra("cameraPosition", Gson().toJson(map.cameraPosition))
+            }
+            setResult(RESULT_OK, intent)
             finish()
         }
 
         binding.courseSearchBarTv.setOnClickListener {
+            val intent = intent.apply {
+                putExtra("cameraPosition", Gson().toJson(map.cameraPosition))
+            }
+            setResult(RESULT_OK, intent)
             finish()
+        }
+
+        binding.courseSearchClearIv.setOnClickListener {
+            val intent = intent.apply {
+                putExtra("cameraPosition", Gson().toJson(map.cameraPosition))
+            }
+            setResult(RESULT_CANCELED, intent)
+            finish()
+        }
+
+        // 초기화 버튼 클릭 시,
+        binding.courseSearchResetTv.setOnClickListener {
+            if (binding.courseSearchResetTv.isSelected) {
+                // 필터링 state 리셋
+                Filtering.resetFilterState()
+                filterRVAdapter.reset(filterState)
+
+                binding.courseSearchResetIv.isSelected = false
+                binding.courseSearchResetTv.isSelected = false
+
+                // API 호출
+                courseVm.getCourses()
+            }
         }
     }
 
@@ -64,10 +101,11 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
         binding.courseSearchBarTv.text = searchWord
 
         setMap()
-        initRV()
+        //initRV()
     }
 
     private fun initRV(){
+        // 필터링 RV
         filterRVAdapter = CourseFilterRVAdapter(supportFragmentManager, Filtering.filters, filterState)
         binding.courseSearchFilterRv.adapter = filterRVAdapter
 
@@ -98,33 +136,63 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
                 courseVm.getCourses()
 
                 if(mode == SEARCH_IN_MY_LOCATION && ::currentLocation.isInitialized){
-                    map.moveCamera(CameraUpdate.scrollTo(LatLng(currentLocation)))
+                    moveCamera(CameraPosition(LatLng(currentLocation), map.cameraPosition.zoom))
                 }
             }
         })
 
-        // 초기화 버튼 클릭 시,
-        binding.courseSearchResetTv.setOnClickListener {
-            if (binding.courseSearchResetTv.isSelected) {
-                // 필터링 state 리셋
-                Filtering.resetFilterState()
-                filterRVAdapter.reset(filterState)
+        // 코스 RV
+        courseRVAdapter = CourseListRVAdapter(this)
+        binding.courseSearchResultRv.adapter = courseRVAdapter
 
-                binding.courseSearchResetIv.isSelected = false
-                binding.courseSearchResetTv.isSelected = false
-
-                // API 호출
-                courseVm.getCourses()
+        courseRVAdapter.setMyClickListener(object : CourseListRVAdapter.CourseClickListener{
+            override fun onClick(course: CourseDTO) {
+                // 코스 상세보기로 이동
             }
+
+            override fun wishCourse(courseIdx: String) {
+                // 찜하기 API 호출
+            }
+        })
+    }
+
+    private fun dummyData(){
+        val courseDTO = arrayListOf<CourseDTO>().apply {
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
+            add(CourseDTO("abc", 127.01, 35.46, "신나는 산책코스", 2.5, 10, 5, 10, listOf("hi", "hello"),"https://i1.sndcdn.com/artworks-OEWgAGpoOqCdgbXC-ghvsbg-t500x500.jpg", true))
         }
+
+        courseRVAdapter.addAll(courseDTO)
+    }
+
+    private fun setSlidingUpPanel(){
+        val slidingPanel = binding.courseSearchSlidingUpPanelLayout
+
+        val panel = (13 + 28 + 15 + ((105+14)*2)) // 슬라이딩 패널 크기 (상단 드래그 이미지, 코스 2개)
+        slidingPanel.panelHeight = convertDpToPx(this, panel)
+        slidingPanel.setMargins(top = binding.courseSearchTopLayout.height)
     }
 
     override fun onBackPressed() {
         binding.courseSearchSlidingUpPanelLayout.apply {
             if (panelState == SlidingUpPanelLayout.PanelState.EXPANDED || panelState == SlidingUpPanelLayout.PanelState.ANCHORED)   //SlidingUpPanelLayout 이 위로 올라가 있으면 아래로 내리기
                 panelState = SlidingUpPanelLayout.PanelState.COLLAPSED
-            else
+            else{
+                val intent = intent.apply {
+                    putExtra("cameraPosition", Gson().toJson(map.cameraPosition))
+                }
+                setResult(RESULT_OK, intent)
+
                 super.onBackPressed()
+            }
         }
     }
 
@@ -142,6 +210,7 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
 
     override fun onMapReady(naverMap: NaverMap) {
         map = naverMap
+        map.uiSettings.logoGravity = Gravity.CENTER_VERTICAL
 
         initUI()
         initMapEvent()
@@ -150,7 +219,8 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
 
     private fun setMap(){
         val cameraPosition = Gson().fromJson(intent.getStringExtra("cameraPosition"), CameraPosition::class.java)
-        map.moveCamera(CameraUpdate.toCameraPosition(cameraPosition))
+        moveCamera(cameraPosition)
+
         map.uiSettings.isZoomControlEnabled = false
         map.uiSettings.isCompassEnabled = false
 
@@ -172,7 +242,15 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
                 map.contentBounds.northEast
             )
             courseVm.setMapBounds(bounds)
+
+            binding.courseSearchSearchAgainTv.visibility = View.VISIBLE
+            binding.courseSearchSearchAgainIv.visibility = View.VISIBLE
         }
+    }
+
+    private fun moveCamera(cameraPosition: CameraPosition){
+        map.moveCamera(CameraUpdate.toCameraPosition(cameraPosition))
+        map.moveCamera(CameraUpdate.scrollBy(PointF(0F, -(13 + 28 + 15 + ((105+14)*2)).toFloat())))
     }
 
     /* 현위치 */
@@ -270,6 +348,9 @@ class CourseSearchActivity: BaseActivity<ActivityCourseSearchBinding>(ActivityCo
 
 
         courseVm.filteredCourseList.observe(this, Observer {
+            // 재검색 버튼 지워주기
+
+
             // 필터링된 리스트 바뀔 때마다 UI 바꿔주기
         })
     }

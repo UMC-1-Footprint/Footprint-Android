@@ -2,6 +2,9 @@ package com.footprint.footprint.ui.main.course
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Observer
 import com.footprint.footprint.R
 import com.footprint.footprint.databinding.FragmentCourseBinding
@@ -13,8 +16,8 @@ import com.footprint.footprint.ui.main.course.Filtering.filters
 import com.footprint.footprint.utils.*
 import com.footprint.footprint.viewmodel.CourseViewModel
 import com.google.gson.Gson
+import com.naver.maps.map.CameraPosition
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
-import java.util.logging.Filter
 
 class CourseFragment() : BaseFragment<FragmentCourseBinding>(FragmentCourseBinding::inflate) {
 
@@ -25,6 +28,8 @@ class CourseFragment() : BaseFragment<FragmentCourseBinding>(FragmentCourseBindi
 
     private val courseVm: CourseViewModel by sharedViewModel()
     private lateinit var filterRVAdapter: CourseFilterRVAdapter
+
+    private lateinit var getResult: ActivityResultLauncher<Intent>
 
     override fun initAfterBinding() {
         setFragmentSetting()
@@ -143,5 +148,29 @@ class CourseFragment() : BaseFragment<FragmentCourseBinding>(FragmentCourseBindi
         })
 
 
+    }
+
+
+    private fun initActivityResult(){
+        getResult = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result: ActivityResult ->
+
+            // Clear 버튼을 누른 경우,
+            if(result.resultCode == CourseSearchActivity.CLEARED){
+                binding.courseSearchBarEt.text.clear()
+                binding.courseSearchBarEt.requestFocus()
+            }
+
+            result.data?.let {
+                val cameraPosition = Gson().fromJson(it.getStringExtra("cameraPosition"), CameraPosition::class.java)
+                mapFragment.setCameraPosition(cameraPosition)
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        initActivityResult()
     }
 }
